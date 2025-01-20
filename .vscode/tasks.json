@@ -1,0 +1,69 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "xmake build debug",
+            "type": "shell",
+            "command": "xmake",
+            "args": [
+                "f",
+                "-m",
+                "debug",
+                "-y",
+                "&&",
+                "xmake"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "xmake build release",
+            "type": "shell",
+            "command": "xmake",
+            "args": [
+                "f",
+                "-m",
+                "release",
+                "-y",
+                "&&",
+                "xmake"
+            ],
+            "group": "build",
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "xmake clean",
+            "type": "shell",
+            "command": "xmake",
+            "args": [
+                "clean"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "xmake run debug",
+            "type": "shell",
+            "command": "xmake",
+            "args": [
+                "run",
+                "-m",
+                "debug"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "xmake run release",
+            "type": "shell",
+            "command": "xmake",
+            "args": [
+                "run",
+                "-m",
+                "release"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}

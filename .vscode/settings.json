@@ -1,0 +1,21 @@
+{
+    "editor.formatOnSave": true,
+    "[cpp]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    },
+    "[c]": {
+        "editor.defaultFormatter": "xaver.clang-format"
+    },
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}",
+        "--background-index",
+        "--clang-tidy",
+        "--completion-style=detailed",
+        "--header-insertion=iwyu",
+        "--all-scopes-completion",
+        "-j=12",
+        "--query-driver=C:\\Program Files\\Microsoft Visual Studio\\**\\cl.exe",
+        "--enable-config",
+        "--format-style=file"
+    ]
+}
