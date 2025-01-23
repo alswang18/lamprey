@@ -22,7 +22,17 @@ if is_host("windows") then
 end
 
 add_rules("plugin.compile_commands.autoupdate", {outputdir = "."})
+add_rules("plugin.vsxmake.autoupdate")
 
+after_build(function (target)
+    os.setenv("VS_STARTUP_PROJECT", target:name())
+    local vsxmake = target:pkg("vsxmake")
+    if vsxmake then
+        vsxmake.folder = "src"
+    end
+end)
+
+add_requires("fmt", {configs = {runtimes = is_mode("debug") and "MTd" or "MT"}})
 
 -- Define target
 target("lamprey")
@@ -32,6 +42,7 @@ target("lamprey")
     add_includedirs("src")
     add_includedirs("res")
 
+    add_packages("fmt")
     -- MSVC specific flags
     if is_plat("windows") then
         add_files("res/app.rc")
@@ -39,7 +50,7 @@ target("lamprey")
 
         -- Remove default warning level and set our own
         set_warnings("all")     -- This removes default warning flags
-        add_cxxflags("/W3", "/WX", {force = true})
+        add_cxxflags("/W3", {force = true})
         add_syslinks("user32", "gdi32")  -- Add Windows system libraries
 
         

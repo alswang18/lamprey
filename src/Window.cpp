@@ -69,6 +69,36 @@ Window::~Window()
     DestroyWindow(hWnd);
 }
 
+void Window::SetTitle(const std::string& title)
+{
+    if (SetWindowText(hWnd, title.c_str()) == 0)
+    {
+        throw LWND_LAST_EXCEPT();
+    }
+}
+
+std::optional<int> Window::ProcessMessages()
+{
+    MSG msg;
+    // while queue has messages, remove and dispatch them (but do not block on empty queue)
+    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+    {
+        // check for quit because peekmessage does not signal this via return val
+        if (msg.message == WM_QUIT)
+        {
+            // return optional wrapping int (arg to PostQuitMessage is in wparam) signals quit
+            return (int)msg.wParam;
+        }
+
+        // TranslateMessage will post auxilliary WM_CHAR messages from key msgs
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    // return empty optional when not quitting app
+    return {};
+}
+
 LRESULT CALLBACK Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     // use create parameter passed in from CreateWindow() to store window class pointer at WinAPI side
@@ -96,6 +126,13 @@ LRESULT CALLBACK Window::HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPAR
     return pWnd->HandleMsg(hWnd, msg, wParam, lParam);
 }
 
+bool isPointValid(const POINTS& pt, int width, int height)
+{
+    int x = pt.x;
+    int y = pt.y;
+    return x >= 0 && x < width && y >= 0 && y < height;
+}
+
 LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
@@ -105,6 +142,106 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_CLOSE:
         PostQuitMessage(0);
         return 0;
+
+    // clear keystate when window loses focus to prevent input getting "stuck"
+    case WM_KILLFOCUS:
+        keyboard.ClearState();
+        break;
+
+    /*********** KEYBOARD MESSAGES ***********/
+    case WM_KEYDOWN:
+    // syskey commands need to be handled to track ALT key (VK_MENU) and F10
+    case WM_SYSKEYDOWN:
+        if (!(lParam & 0x40000000) || keyboard.AutorepeatIsEnabled()) // filter autorepeat
+        {
+            keyboard.OnKeyPressed(static_cast<unsigned char>(wParam));
+        }
+        break;
+    case WM_KEYUP:
+    case WM_SYSKEYUP:
+        keyboard.OnKeyReleased(static_cast<unsigned char>(wParam));
+        break;
+    case WM_CHAR:
+        keyboard.OnChar(static_cast<unsigned char>(wParam));
+        break;
+        /*********** END KEYBOARD MESSAGES ***********/
+
+        /************* MOUSE MESSAGES ****************/
+    case WM_MOUSEMOVE:
+    {
+        const POINTS pt = MAKEPOINTS(lParam);
+        int x = static_cast<int>(pt.x);
+        int y = static_cast<int>(pt.y);
+        // in client region -> log move, and log enter + capture mouse (if not previously in window)
+        if (isPointValid(pt, width, height))
+        {
+            mouse.OnMouseMove(pt.x, pt.y);
+            if (!mouse.IsInWindow())
+            {
+                SetCapture(hWnd);
+                mouse.OnMouseEnter();
+            }
+        }
+        // not in client -> log move / maintain capture if button down
+        else
+        {
+            if (wParam & (MK_LBUTTON | MK_RBUTTON))
+            {
+                mouse.OnMouseMove(pt.x, pt.y);
+            }
+            // button up -> release capture / log event for leaving
+            else
+            {
+                ReleaseCapture();
+                mouse.OnMouseLeave();
+            }
+        }
+        break;
+    }
+    case WM_LBUTTONDOWN:
+    {
+        const POINTS pt = MAKEPOINTS(lParam);
+        mouse.OnLeftPressed(pt.x, pt.y);
+        break;
+    }
+    case WM_RBUTTONDOWN:
+    {
+        const POINTS pt = MAKEPOINTS(lParam);
+        mouse.OnRightPressed(pt.x, pt.y);
+        break;
+    }
+    case WM_LBUTTONUP:
+    {
+        const POINTS pt = MAKEPOINTS(lParam);
+        mouse.OnLeftReleased(pt.x, pt.y);
+        // release mouse if outside of window
+        if (isPointValid(pt, width, height))
+        {
+            ReleaseCapture();
+            mouse.OnMouseLeave();
+        }
+        break;
+    }
+    case WM_RBUTTONUP:
+    {
+        const POINTS pt = MAKEPOINTS(lParam);
+        mouse.OnRightReleased(pt.x, pt.y);
+        // release mouse if outside of window
+        if (isPointValid(pt, width, height))
+        {
+            ReleaseCapture();
+            mouse.OnMouseLeave();
+        }
+        break;
+    }
+    case WM_MOUSEWHEEL:
+    {
+        const POINTS pt = MAKEPOINTS(lParam);
+        const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
+        mouse.OnWheelDelta(pt.x, pt.y, delta);
+        break;
+    }
+        /************** END MOUSE MESSAGES **************/
     }
 
     return DefWindowProc(hWnd, msg, wParam, lParam);
