@@ -19,6 +19,10 @@ if is_host("windows") then
     
     -- Help with MSVC compatibility
     add_defines("_CRT_SECURE_NO_WARNINGS")
+    if is_mode("vs") then
+        set_configvar("VS_USE_SOLUTION_FOLDERS", true)
+        set_policy("vs.solution.project.use_script_file_system", true)
+    end
 end
 
 add_rules("plugin.compile_commands.autoupdate", {outputdir = "."})
