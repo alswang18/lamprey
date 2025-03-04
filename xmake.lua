@@ -64,13 +64,13 @@ target("lamprey")
             add_cxxflags("/Zi", "/FS")  -- Generate complete debugging information
             add_ldflags("/DEBUG:FULL")   -- Include all debug info
             set_runtimes("MTd")
+            add_defines("NDEBUG")
         end
         
         -- Optimize for performance in release mode
         if is_mode("release") then
             add_cxxflags("/O2", "/Oi", "/Ot")
             add_cxxflags("/GL")  -- Whole program optimization
-            add_ldflags("/LTCG") -- Link-time code generation
             set_runtimes("MT")
         end
         

@@ -99,8 +99,8 @@ private:
 
 private:
     static constexpr unsigned int bufferSize = 16u;
-    int x;
-    int y;
+    int x = 0;
+    int y = 0;
     bool leftIsPressed = false;
     bool rightIsPressed = false;
     bool isInWindow = false;

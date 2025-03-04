@@ -13,7 +13,7 @@ const char* LampreyException::what() const noexcept
 
 const char* LampreyException::GetType() const noexcept
 {
-    return "Chili Exception";
+    return "Lamprey Exception";
 }
 
 int LampreyException::GetLine() const noexcept
