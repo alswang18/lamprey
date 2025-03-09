@@ -64,7 +64,6 @@ target("lamprey")
             add_cxxflags("/Zi", "/FS")  -- Generate complete debugging information
             add_ldflags("/DEBUG:FULL")   -- Include all debug info
             set_runtimes("MTd")
-            add_defines("NDEBUG")
         end
         
         -- Optimize for performance in release mode
@@ -72,6 +71,7 @@ target("lamprey")
             add_cxxflags("/O2", "/Oi", "/Ot")
             add_cxxflags("/GL")  -- Whole program optimization
             set_runtimes("MT")
+            add_defines("NDEBUG")
         end
         
         -- Enable additional security features
@@ -82,4 +82,44 @@ target("lamprey")
         add_cxxflags("/permissive-") -- Strict C++ conformance
         add_cxxflags("/Zc:__cplusplus") -- Correct __cplusplus macro
         add_cxxflags("/Zc:preprocessor") -- Conforming preprocessor
+   
     end
+    -- Add shader directory definition
+    add_defines("SHADER_DIR=\"shaders\"")
+    
+    -- Link shader management to this target
+    add_deps("shaders")
+
+-- Separate target just for shader management
+target("shaders")
+    set_kind("phony") -- Not an actual binary output
+    
+    -- Track shader files for IDE integration
+    add_headerfiles("shader/*.hlsl")
+    
+    -- Custom build step to copy shaders
+    on_build(function (target)
+        -- Get the paths
+        local shader_source_dir = path.join(target:scriptdir(), "shader")
+        local shader_target_dir = path.join("$(buildir)", "shaders")
+        
+        -- Create output directory
+        os.mkdir(shader_target_dir)
+        
+        -- Copy all shader files
+        print("Copying shader files to " .. shader_target_dir)
+        os.cp(path.join(shader_source_dir, "*.hlsl"), shader_target_dir)
+        
+        -- Print result with a count of files
+        local shader_files = os.files(path.join(shader_source_dir, "*.hlsl"))
+        print(string.format("Copied %d shader files", #shader_files))
+    end)
+    
+    -- On install, copy shaders to the install directory too
+    on_install(function (target) 
+        local shader_source_dir = path.join(target:scriptdir(), "shader")
+        local shader_install_dir = path.join("$(installdir)", "shaders")
+        
+        os.mkdir(shader_install_dir)
+        os.cp(path.join(shader_source_dir, "*.hlsl"), shader_install_dir)
+    end)

@@ -46,6 +46,7 @@ public:
     ~Graphics() = default;
     void EndFrame();
     void ClearBuffer(float red, float green, float blue) noexcept;
+    //void Draw
 
 private:
 #ifndef NDEBUG

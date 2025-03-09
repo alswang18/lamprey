@@ -4,7 +4,6 @@
 #include <dxgidebug.h>
 #include <memory>
 
-
 #pragma comment(lib, "dxguid.lib")
 
 #define GFX_THROW_NOINFO(hrcall)                                                                                       \
@@ -32,9 +31,8 @@ DxgiInfoManager::DxgiInfoManager()
     }
 
     HRESULT hr;
-    GFX_THROW_NOINFO(DxgiGetDebugInterface(__uuidof(IDXGIInfoQueue), reinterpret_cast<void**>(pDxgiInfoQueue.Get())));
+    GFX_THROW_NOINFO(DxgiGetDebugInterface(__uuidof(IDXGIInfoQueue), &pDxgiInfoQueue));
 }
-
 
 void DxgiInfoManager::Set() noexcept
 {
