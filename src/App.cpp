@@ -7,7 +7,8 @@ int App::Go()
 {
     while (true)
     {
-        const std::optional<int> ecode = Window::ProcessMessages();
+        const std::optional<int> ecode =
+            Window::ProcessMessages();
 
         if (ecode.has_value())
         {
@@ -22,5 +23,6 @@ void App::DoFrame()
 {
     const float c = sin(timer.Peek()) / 2.0f + 0.5f;
     wnd.Gfx().ClearBuffer(c, c, 1.0f);
+    wnd.Gfx().DrawTestTriangle();
     wnd.Gfx().EndFrame();
 }

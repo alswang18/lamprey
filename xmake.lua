@@ -84,42 +84,65 @@ target("lamprey")
         add_cxxflags("/Zc:preprocessor") -- Conforming preprocessor
    
     end
-    -- Add shader directory definition
-    add_defines("SHADER_DIR=\"shaders\"")
+    -- Add only VertexShader.hlsl and apply the rule
+    add_files("shaders/VertexShader.hlsl", {rule = "vertex_shader"})
+    add_files("shaders/PixelShader.hlsl", {rule = "pixel_shader"})
     
-    -- Link shader management to this target
-    add_deps("shaders")
-
--- Separate target just for shader management
-target("shaders")
-    set_kind("phony") -- Not an actual binary output
-    
-    -- Track shader files for IDE integration
-    add_headerfiles("shader/*.hlsl")
-    
-    -- Custom build step to copy shaders
-    on_build(function (target)
-        -- Get the paths
-        local shader_source_dir = path.join(target:scriptdir(), "shader")
-        local shader_target_dir = path.join("$(buildir)", "shaders")
-        
-        -- Create output directory
-        os.mkdir(shader_target_dir)
-        
-        -- Copy all shader files
-        print("Copying shader files to " .. shader_target_dir)
-        os.cp(path.join(shader_source_dir, "*.hlsl"), shader_target_dir)
-        
-        -- Print result with a count of files
-        local shader_files = os.files(path.join(shader_source_dir, "*.hlsl"))
-        print(string.format("Copied %d shader files", #shader_files))
+    -- Copy the compiled shader to the output directory
+    after_build(function (target)
+        local outputdir = target:targetdir()
+        os.mkdir(outputdir)
+        os.cp(path.join(target:objectdir(), "VertexShader.cso"), outputdir)
+        os.cp(path.join(target:objectdir(), "PixelShader.cso"), outputdir)
     end)
-    
-    -- On install, copy shaders to the install directory too
-    on_install(function (target) 
-        local shader_source_dir = path.join(target:scriptdir(), "shader")
-        local shader_install_dir = path.join("$(installdir)", "shaders")
+
+
+rule("vertex_shader")
+    set_extensions(".hlsl")
+    on_buildcmd_file(function (target, batchcmds, sourcefile, opt)
+        -- Only process VertexShader.hlsl
+        if path.basename(sourcefile) ~= "VertexShader" then
+            return
+        end
         
-        os.mkdir(shader_install_dir)
-        os.cp(path.join(shader_source_dir, "*.hlsl"), shader_install_dir)
+        -- Get output file (same name but .cso extension)
+        local outputdir = target:objectdir()
+        local outputfile = path.join(outputdir, "VertexShader.cso")
+        
+        -- Ensure output directory exists
+        batchcmds:mkdir(path.directory(outputfile))
+        
+        batchcmds:execv("fxc", {"/T", "vs_5_0", "/E", "main", "/Fo", outputfile, sourcefile})
+        
+        -- Add the output file to the target
+        batchcmds:add_depfiles(sourcefile)
+        batchcmds:set_depmtime(os.mtime(outputfile))
+        batchcmds:set_depcache(target:dependfile(outputfile))
+        
+        -- Return the output file
+        return outputfile
+    end)
+
+rule("pixel_shader")
+    set_extensions(".hlsl")
+    on_buildcmd_file(function (target, batchcmds, sourcefile, opt)
+
+        if path.basename(sourcefile) ~= "PixelShader" then
+            print("failed: " .. sourcefile .. " is not PixelShader.hlsl")
+            return
+        end
+
+        local outputdir = target:objectdir()
+        local outputfile = path.join(outputdir, "PixelShader.cso")
+
+        batchcmds:show_progress(opt.progress, "${color.build.object}compiling shader %s", sourcefile)
+        batchcmds:execv("fxc", {"/T", "ps_5_0", "/E", "main", "/Fo", outputfile, sourcefile})
+
+    -- Add the output file to the target
+        batchcmds:add_depfiles(sourcefile)
+        batchcmds:set_depmtime(os.mtime(outputfile))
+        batchcmds:set_depcache(target:dependfile(outputfile))
+        
+        -- Return the output file
+        return outputfile
     end)
