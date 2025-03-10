@@ -6,6 +6,7 @@
     "[c]": {
         "editor.defaultFormatter": "xaver.clang-format"
     },
+    "C_Cpp.intelliSenseEngine": "disabled",
     "clangd.arguments": [
         "--compile-commands-dir=${workspaceFolder}",
         "--background-index",
@@ -15,7 +16,5 @@
         "--all-scopes-completion",
         "-j=12",
         "--query-driver=C:\\Program Files\\Microsoft Visual Studio\\**\\cl.exe",
-        "--enable-config",
-        "--format-style=file"
     ]
 }

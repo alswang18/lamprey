@@ -8,11 +8,12 @@ int App::Go()
     while (true)
     {
         const std::optional<int> ecode = Window::ProcessMessages();
+
         if (ecode.has_value())
         {
             return ecode.value();
-            // if return optional has value, means we're quitting so return exit code
         }
+
         DoFrame();
     }
 }

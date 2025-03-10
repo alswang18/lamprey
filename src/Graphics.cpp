@@ -57,7 +57,6 @@ Graphics::Graphics(HWND hWnd)
     wrl::ComPtr<ID3D11Resource> pBackBuffer;
     GFX_THROW_INFO(pSwap->GetBuffer(0, __uuidof(ID3D11Resource), &pBackBuffer));
     GFX_THROW_INFO(pDevice->CreateRenderTargetView(pBackBuffer.Get(), nullptr, &pTarget));
-
 }
 
 void Graphics::EndFrame()
