@@ -46,6 +46,18 @@ target("lamprey")
     add_includedirs("src")
     add_includedirs("res")
 
+    add_files("src/Bindable/*.cpp")
+    add_headerfiles("src/Bindable/*.h")
+    add_includedirs("src/Bindable")
+    
+    add_headerfiles("src/Macros/*.h")
+    add_includedirs("src/Macros")
+    
+    add_files("src/Drawable/*.cpp")
+    add_headerfiles("src/Drawable/*.h")
+    add_includedirs("src/Drawable")
+
+
     add_packages("fmt")
     -- MSVC specific flags
     if is_plat("windows") then

@@ -1,51 +1,14 @@
 #include "Graphics.h"
+#include "Macros/GraphicsThrowMacros.h"
+#include <DirectXMath.h>
 #include <d3dcompiler.h>
+#include <dxgiformat.h>
 #include <sstream>
 
 namespace wrl = Microsoft::WRL;
+
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "D3DCompiler.lib")
-
-// graphics exception checking/throwing macros (some with
-// dxgi infos)
-#define GFX_EXCEPT_NOINFO(hr)                              \
-    Graphics::HrException(__LINE__, __FILE__, (hr))
-#define GFX_THROW_NOINFO(hrcall)                           \
-    if (FAILED(hr = (hrcall)))                             \
-    throw Graphics::HrException(__LINE__, __FILE__, hr)
-
-#ifndef NDEBUG
-#define GFX_EXCEPT(hr)                                     \
-    Graphics::HrException(__LINE__, __FILE__, (hr),        \
-                          infoManager.GetMessages())
-#define GFX_THROW_INFO(hrcall)                             \
-    infoManager.Set();                                     \
-    if (FAILED(hr = (hrcall)))                             \
-    throw GFX_EXCEPT(hr)
-#define GFX_DEVICE_REMOVED_EXCEPT(hr)                      \
-    Graphics::DeviceRemovedException(                      \
-        __LINE__, __FILE__, (hr),                          \
-        infoManager.GetMessages())
-#define GFX_THROW_INFO_ONLY(call)                          \
-    infoManager.Set();                                     \
-    (call);                                                \
-    {                                                      \
-        auto v = infoManager.GetMessages();                \
-        if (!v.empty())                                    \
-        {                                                  \
-            throw Graphics::InfoException(__LINE__,        \
-                                          __FILE__, v);    \
-        }                                                  \
-    }
-#else
-#define GFX_EXCEPT(hr)                                     \
-    Graphics::HrException(__LINE__, __FILE__, (hr))
-#define GFX_THROW_INFO(hrcall) GFX_THROW_NOINFO(hrcall)
-#define GFX_DEVICE_REMOVED_EXCEPT(hr)                      \
-    Graphics::DeviceRemovedException(__LINE__, __FILE__,   \
-                                     (hr))
-#define GFX_THROW_INFO_ONLY(call) (call)
-#endif
 
 Graphics::Graphics(HWND hWnd)
 {
@@ -75,11 +38,12 @@ Graphics::Graphics(HWND hWnd)
     // for checking results of d3d functions
     HRESULT hr;
 
+    // create device and front/back buffers, and swap chain
+    // and rendering context
     GFX_THROW_INFO(D3D11CreateDeviceAndSwapChain(
         nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
         swapCreateFlags, nullptr, 0, D3D11_SDK_VERSION, &sd,
         &pSwap, &pDevice, nullptr, &pContext));
-
     // gain access to texture subresource in swap chain
     // (back buffer)
     wrl::ComPtr<ID3D11Resource> pBackBuffer;
@@ -87,6 +51,55 @@ Graphics::Graphics(HWND hWnd)
         0, __uuidof(ID3D11Resource), &pBackBuffer));
     GFX_THROW_INFO(pDevice->CreateRenderTargetView(
         pBackBuffer.Get(), nullptr, &pTarget));
+
+    // create depth stensil state
+    D3D11_DEPTH_STENCIL_DESC dsDesc = {};
+    dsDesc.DepthEnable = TRUE;
+    dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
+    wrl::ComPtr<ID3D11DepthStencilState> pDSState;
+    GFX_THROW_INFO(pDevice->CreateDepthStencilState(
+        &dsDesc, &pDSState));
+
+    // bind depth state
+    pContext->OMSetDepthStencilState(pDSState.Get(), 1u);
+
+    // create depth stensil texture
+    wrl::ComPtr<ID3D11Texture2D> pDepthStencil;
+    D3D11_TEXTURE2D_DESC descDepth = {};
+    descDepth.Width = 800u;
+    descDepth.Height = 600u;
+    descDepth.MipLevels = 1u;
+    descDepth.ArraySize = 1u;
+    descDepth.Format = DXGI_FORMAT_D32_FLOAT;
+    descDepth.SampleDesc.Count = 1u;
+    descDepth.SampleDesc.Quality = 0u;
+    descDepth.Usage = D3D11_USAGE_DEFAULT;
+    descDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    GFX_THROW_INFO(pDevice->CreateTexture2D(
+        &descDepth, nullptr, &pDepthStencil));
+
+    // create view of depth stensil texture
+    D3D11_DEPTH_STENCIL_VIEW_DESC descDSV = {};
+    descDSV.Format = DXGI_FORMAT_D32_FLOAT;
+    descDSV.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    descDSV.Texture2D.MipSlice = 0u;
+    GFX_THROW_INFO(pDevice->CreateDepthStencilView(
+        pDepthStencil.Get(), &descDSV, &pDSV));
+
+    // bind depth stensil view to OM
+    pContext->OMSetRenderTargets(1u, pTarget.GetAddressOf(),
+                                 pDSV.Get());
+
+    // configure viewport
+    D3D11_VIEWPORT vp;
+    vp.Width = 800.0f;
+    vp.Height = 600.0f;
+    vp.MinDepth = 0.0f;
+    vp.MaxDepth = 1.0f;
+    vp.TopLeftX = 0.0f;
+    vp.TopLeftY = 0.0f;
+    pContext->RSSetViewports(1u, &vp);
 }
 
 void Graphics::EndFrame()
@@ -114,6 +127,8 @@ void Graphics::ClearBuffer(float red, float green,
 {
     const float color[] = {red, green, blue, 1.0f};
     pContext->ClearRenderTargetView(pTarget.Get(), color);
+    pContext->ClearDepthStencilView(
+        pDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
 }
 
 // Graphics exception stuff
@@ -179,102 +194,21 @@ const char* Graphics::DeviceRemovedException::GetType()
            "(DXGI_ERROR_DEVICE_REMOVED)";
 }
 
-void Graphics::DrawTestTriangle()
+void Graphics::DrawIndexed(UINT count)
 {
-    namespace wrl = Microsoft::WRL;
-    HRESULT hr;
-
-    struct Vertex
-    {
-        float x;
-        float y;
-    };
-
-    // create vertex buffer (1 2d triangle at center of
-    // screen)
-    const Vertex vertices[] = {
-        {0.0f, 0.5f},
-        {0.5f, -0.5f},
-        {-0.5f, -0.5f},
-    };
-    wrl::ComPtr<ID3D11Buffer> pVertexBuffer;
-    D3D11_BUFFER_DESC bd = {};
-    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.CPUAccessFlags = 0u;
-    bd.MiscFlags = 0u;
-    bd.ByteWidth = sizeof(vertices);
-    bd.StructureByteStride = sizeof(Vertex);
-    D3D11_SUBRESOURCE_DATA sd = {};
-    sd.pSysMem = vertices;
-    GFX_THROW_INFO(
-        pDevice->CreateBuffer(&bd, &sd, &pVertexBuffer));
-
-    // Bind vertex buffer to pipeline
-    const UINT stride = sizeof(Vertex);
-    const UINT offset = 0u;
-    pContext->IASetVertexBuffers(
-        0u, 1u, pVertexBuffer.GetAddressOf(), &stride,
-        &offset);
-
-    // create pixel shader
-    wrl::ComPtr<ID3D11PixelShader> pPixelShader;
-    wrl::ComPtr<ID3DBlob> pBlob;
-    GFX_THROW_INFO(
-        D3DReadFileToBlob(L"PixelShader.cso", &pBlob));
-    GFX_THROW_INFO(pDevice->CreatePixelShader(
-        pBlob->GetBufferPointer(), pBlob->GetBufferSize(),
-        nullptr, &pPixelShader));
-
-    // bind pixel shader
-    pContext->PSSetShader(pPixelShader.Get(), nullptr, 0u);
-
-    // create vertex shader
-    wrl::ComPtr<ID3D11VertexShader> pVertexShader;
-    GFX_THROW_INFO(
-        D3DReadFileToBlob(L"VertexShader.cso", &pBlob));
-    GFX_THROW_INFO(pDevice->CreateVertexShader(
-        pBlob->GetBufferPointer(), pBlob->GetBufferSize(),
-        nullptr, &pVertexShader));
-
-    // bind vertex shader
-    pContext->VSSetShader(pVertexShader.Get(), nullptr, 0u);
-
-    // input (vertex) layout (2d position only)
-    wrl::ComPtr<ID3D11InputLayout> pInputLayout;
-    const D3D11_INPUT_ELEMENT_DESC ied[] = {
-        {"Position", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0,
-         D3D11_INPUT_PER_VERTEX_DATA, 0},
-    };
-    GFX_THROW_INFO(pDevice->CreateInputLayout(
-        ied, (UINT)std::size(ied),
-        pBlob->GetBufferPointer(), pBlob->GetBufferSize(),
-        &pInputLayout));
-
-    // bind vertex layout
-    pContext->IASetInputLayout(pInputLayout.Get());
-
-    // bind render target
-    pContext->OMSetRenderTargets(1u, pTarget.GetAddressOf(),
-                                 nullptr);
-
-    // Set primitive topology to triangle list (groups of 3
-    // vertices)
-    pContext->IASetPrimitiveTopology(
-        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    // configure viewport
-    D3D11_VIEWPORT vp;
-    vp.Width = 800;
-    vp.Height = 600;
-    vp.MinDepth = 0;
-    vp.MaxDepth = 1;
-    vp.TopLeftX = 0;
-    vp.TopLeftY = 0;
-    pContext->RSSetViewports(1u, &vp);
-
     GFX_THROW_INFO_ONLY(
-        pContext->Draw((UINT)std::size(vertices), 0u));
+        pContext->DrawIndexed(count, 0u, 0u));
+}
+
+void Graphics::SetProjection(
+    DirectX::FXMMATRIX proj) noexcept
+{
+    projection = proj;
+}
+
+DirectX::XMMATRIX Graphics::GetProjection() const noexcept
+{
+    return projection;
 }
 
 Graphics::InfoException::InfoException(

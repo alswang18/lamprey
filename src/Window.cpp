@@ -1,12 +1,13 @@
 #include "Window.h"
-#include "LmpAsserts.h"
+#include "Macros/WindowsThrowMacros.h"
 #include "resource.h"
 #include <sstream>
 
 // Initialize static members of WindowClass.
 Window::WindowClass Window::WindowClass::wndClass;
 
-Window::WindowClass::WindowClass() : hInst(GetModuleHandle(nullptr))
+Window::WindowClass::WindowClass()
+    : hInst(GetModuleHandle(nullptr))
 {
     WNDCLASSEX wc = {0};
     wc.cbSize = sizeof(wc);
@@ -15,12 +16,16 @@ Window::WindowClass::WindowClass() : hInst(GetModuleHandle(nullptr))
     wc.cbClsExtra = 0;
     wc.cbWndExtra = 0;
     wc.hInstance = GetInstance();
-    wc.hIcon = static_cast<HICON>(LoadImage(GetInstance(), MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, 32, 32, 0));
+    wc.hIcon = static_cast<HICON>(
+        LoadImage(GetInstance(), MAKEINTRESOURCE(IDI_ICON1),
+                  IMAGE_ICON, 32, 32, 0));
     wc.hCursor = nullptr;
     wc.hbrBackground = nullptr;
     wc.lpszMenuName = nullptr;
     wc.lpszClassName = GetName();
-    wc.hIconSm = static_cast<HICON>(LoadImage(GetInstance(), MAKEINTRESOURCE(IDI_ICON1), IMAGE_ICON, 16, 16, 0));
+    wc.hIconSm = static_cast<HICON>(
+        LoadImage(GetInstance(), MAKEINTRESOURCE(IDI_ICON1),
+                  IMAGE_ICON, 16, 16, 0));
     RegisterClassEx(&wc);
 }
 
@@ -40,22 +45,29 @@ HINSTANCE Window::WindowClass::GetInstance()
 }
 
 // Window Stuff
-Window::Window(int width, int height, const char* name) : width(width), height(height)
+Window::Window(int width, int height, const char* name)
+    : width(width), height(height)
 {
-    // calculate window size based on desired client region size
+    // calculate window size based on desired client region
+    // size
     RECT wr = {0};
     wr.left = 100;
     wr.right = width + wr.left;
     wr.top = 100;
     wr.bottom = height + wr.top;
-    if (AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE) == 0)
+    if (AdjustWindowRect(
+            &wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
+            FALSE) == 0)
     {
         throw LWND_LAST_EXCEPT();
     }
     // create window & get hWnd
-    hWnd = CreateWindow(WindowClass::GetName(), name, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, CW_USEDEFAULT,
-                        CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top, nullptr, nullptr,
-                        WindowClass::GetInstance(), this);
+    hWnd = CreateWindow(
+        WindowClass::GetName(), name,
+        WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU,
+        CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left,
+        wr.bottom - wr.top, nullptr, nullptr,
+        WindowClass::GetInstance(), this);
 
     if (hWnd == nullptr)
     {
@@ -84,17 +96,21 @@ void Window::SetTitle(const std::string& title)
 std::optional<int> Window::ProcessMessages()
 {
     MSG msg;
-    // while queue has messages, remove and dispatch them (but do not block on empty queue)
+    // while queue has messages, remove and dispatch them
+    // (but do not block on empty queue)
     while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
     {
-        // check for quit because peekmessage does not signal this via return val
+        // check for quit because peekmessage does not
+        // signal this via return val
         if (msg.message == WM_QUIT)
         {
-            // return optional wrapping int (arg to PostQuitMessage is in wparam) signals quit
+            // return optional wrapping int (arg to
+            // PostQuitMessage is in wparam) signals quit
             return (int)msg.wParam;
         }
 
-        // TranslateMessage will post auxilliary WM_CHAR messages from key msgs
+        // TranslateMessage will post auxilliary WM_CHAR
+        // messages from key msgs
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
@@ -112,29 +128,43 @@ Graphics& Window::Gfx()
     return *pGfx;
 }
 
-LRESULT CALLBACK Window::HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Window::HandleMsgSetup(HWND hWnd, UINT msg,
+                                        WPARAM wParam,
+                                        LPARAM lParam)
 {
-    // use create parameter passed in from CreateWindow() to store window class pointer at WinAPI side
+    // use create parameter passed in from CreateWindow() to
+    // store window class pointer at WinAPI side
     if (msg == WM_NCCREATE)
     {
         // extract ptr to window class from creation data
-        const CREATESTRUCTW* const pCreate = reinterpret_cast<CREATESTRUCTW*>(lParam);
-        Window* const pWnd = static_cast<Window*>(pCreate->lpCreateParams);
-        // set WinAPI-managed user data to store ptr to window class
-        SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWnd));
-        // set message proc to normal (non-setup) handler now that setup is finished
-        SetWindowLongPtr(hWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&Window::HandleMsgThunk));
+        const CREATESTRUCTW* const pCreate =
+            reinterpret_cast<CREATESTRUCTW*>(lParam);
+        Window* const pWnd =
+            static_cast<Window*>(pCreate->lpCreateParams);
+        // set WinAPI-managed user data to store ptr to
+        // window class
+        SetWindowLongPtr(hWnd, GWLP_USERDATA,
+                         reinterpret_cast<LONG_PTR>(pWnd));
+        // set message proc to normal (non-setup) handler
+        // now that setup is finished
+        SetWindowLongPtr(hWnd, GWLP_WNDPROC,
+                         reinterpret_cast<LONG_PTR>(
+                             &Window::HandleMsgThunk));
         // forward message to window class handler
         return pWnd->HandleMsg(hWnd, msg, wParam, lParam);
     }
-    // if we get a message before the WM_NCCREATE message, handle with default handler
+    // if we get a message before the WM_NCCREATE message,
+    // handle with default handler
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
-LRESULT CALLBACK Window::HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Window::HandleMsgThunk(HWND hWnd, UINT msg,
+                                        WPARAM wParam,
+                                        LPARAM lParam)
 {
     // retrieve ptr to window class
-    Window* const pWnd = reinterpret_cast<Window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    Window* const pWnd = reinterpret_cast<Window*>(
+        GetWindowLongPtr(hWnd, GWLP_USERDATA));
     // forward message to window class handler
     return pWnd->HandleMsg(hWnd, msg, wParam, lParam);
 }
@@ -146,33 +176,41 @@ bool isPointValid(const POINTS& pt, int width, int height)
     return x >= 0 && x < width && y >= 0 && y < height;
 }
 
-LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
+                          WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
-    // we don't want the DefProc to handle this message because
-    // we want our destructor to destroy the window, so return 0 instead of break
+    // we don't want the DefProc to handle this message
+    // because we want our destructor to destroy the window,
+    // so return 0 instead of break
     case WM_CLOSE:
         PostQuitMessage(0);
         return 0;
 
-    // clear keystate when window loses focus to prevent input getting "stuck"
+    // clear keystate when window loses focus to prevent
+    // input getting "stuck"
     case WM_KILLFOCUS:
         keyboard.ClearState();
         break;
 
     /*********** KEYBOARD MESSAGES ***********/
     case WM_KEYDOWN:
-    // syskey commands need to be handled to track ALT key (VK_MENU) and F10
+    // syskey commands need to be handled to track ALT key
+    // (VK_MENU) and F10
     case WM_SYSKEYDOWN:
-        if (!(lParam & 0x40000000) || keyboard.AutorepeatIsEnabled()) // filter autorepeat
+        if (!(lParam & 0x40000000) ||
+            keyboard
+                .AutorepeatIsEnabled()) // filter autorepeat
         {
-            keyboard.OnKeyPressed(static_cast<unsigned char>(wParam));
+            keyboard.OnKeyPressed(
+                static_cast<unsigned char>(wParam));
         }
         break;
     case WM_KEYUP:
     case WM_SYSKEYUP:
-        keyboard.OnKeyReleased(static_cast<unsigned char>(wParam));
+        keyboard.OnKeyReleased(
+            static_cast<unsigned char>(wParam));
         break;
     case WM_CHAR:
         keyboard.OnChar(static_cast<unsigned char>(wParam));
@@ -185,7 +223,8 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         const POINTS pt = MAKEPOINTS(lParam);
         int x = static_cast<int>(pt.x);
         int y = static_cast<int>(pt.y);
-        // in client region -> log move, and log enter + capture mouse (if not previously in window)
+        // in client region -> log move, and log enter +
+        // capture mouse (if not previously in window)
         if (isPointValid(pt, width, height))
         {
             mouse.OnMouseMove(pt.x, pt.y);
@@ -195,14 +234,16 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 mouse.OnMouseEnter();
             }
         }
-        // not in client -> log move / maintain capture if button down
+        // not in client -> log move / maintain capture if
+        // button down
         else
         {
             if (wParam & (MK_LBUTTON | MK_RBUTTON))
             {
                 mouse.OnMouseMove(pt.x, pt.y);
             }
-            // button up -> release capture / log event for leaving
+            // button up -> release capture / log event for
+            // leaving
             else
             {
                 ReleaseCapture();
@@ -215,6 +256,9 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
         const POINTS pt = MAKEPOINTS(lParam);
         mouse.OnLeftPressed(pt.x, pt.y);
+        // bring window to foreground on lclick client
+        // region
+        SetForegroundWindow(hWnd);
         break;
     }
     case WM_RBUTTONDOWN:
@@ -260,34 +304,47 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
-std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
+std::string Window::Exception::TranslateErrorCode(
+    HRESULT hr) noexcept
 {
     char* pMsgBuf = nullptr;
-    // windows will allocate memory for err string and make our pointer point to it
+    // windows will allocate memory for err string and make
+    // our pointer point to it
     const DWORD nMsgLen = FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, hr,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPSTR>(&pMsgBuf), 0, nullptr);
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+            FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr, hr,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        reinterpret_cast<LPSTR>(&pMsgBuf), 0, nullptr);
     // 0 string length returned indicates a failure
     if (nMsgLen == 0)
     {
         return "Unidentified error code";
     }
-    // copy error string from windows-allocated buffer to std::string
+    // copy error string from windows-allocated buffer to
+    // std::string
     std::string errorString = pMsgBuf;
     // free windows buffer
     LocalFree(pMsgBuf);
     return errorString;
 }
 
-Window::HrException::HrException(int line, const char* file, HRESULT hr) noexcept : Exception(line, file), hr(hr) {}
+Window::HrException::HrException(int line, const char* file,
+                                 HRESULT hr) noexcept
+    : Exception(line, file), hr(hr)
+{
+}
 
 const char* Window::HrException::what() const noexcept
 {
     std::ostringstream oss;
     oss << GetType() << std::endl
-        << "[Error Code] 0x" << std::hex << std::uppercase << GetErrorCode() << std::dec << " ("
+        << "[Error Code] 0x" << std::hex << std::uppercase
+        << GetErrorCode() << std::dec << " ("
         << (unsigned long)GetErrorCode() << ")" << std::endl
-        << "[Description] " << GetErrorDescription() << std::endl
+        << "[Description] " << GetErrorDescription()
+        << std::endl
         << GetOriginString();
     whatBuffer = oss.str();
     return whatBuffer.c_str();
@@ -303,7 +360,8 @@ HRESULT Window::HrException::GetErrorCode() const noexcept
     return hr;
 }
 
-std::string Window::HrException::GetErrorDescription() const noexcept
+std::string Window::HrException::GetErrorDescription()
+    const noexcept
 {
     return Exception::TranslateErrorCode(hr);
 }

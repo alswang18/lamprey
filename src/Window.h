@@ -16,12 +16,14 @@ public:
         using LampreyException::LampreyException;
 
     public:
-        static std::string TranslateErrorCode(HRESULT hr) noexcept;
+        static std::string TranslateErrorCode(
+            HRESULT hr) noexcept;
     };
     class HrException : public Exception
     {
     public:
-        HrException(int line, const char* file, HRESULT hr) noexcept;
+        HrException(int line, const char* file,
+                    HRESULT hr) noexcept;
         const char* what() const noexcept override;
         const char* GetType() const noexcept override;
         HRESULT GetErrorCode() const noexcept;
@@ -38,7 +40,8 @@ public:
     };
 
 private:
-    // singleton manages registration/cleanup of window class
+    // singleton manages registration/cleanup of window
+    // class
     class WindowClass
     {
     public:
@@ -50,7 +53,8 @@ private:
         ~WindowClass();
         WindowClass(const WindowClass&) = delete;
         WindowClass& operator=(const WindowClass&) = delete;
-        static constexpr const char* wndClassName = "Lamprey Direct3D Engine Window";
+        static constexpr const char* wndClassName =
+            "Lamprey Direct3D Engine Window";
         static WindowClass wndClass;
         HINSTANCE hInst;
     };
@@ -70,9 +74,16 @@ public:
     Timer timer;
 
 private:
-    static LRESULT CALLBACK HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-    static LRESULT CALLBACK HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-    LRESULT HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK HandleMsgSetup(HWND hWnd,
+                                           UINT msg,
+                                           WPARAM wParam,
+                                           LPARAM lParam);
+    static LRESULT CALLBACK HandleMsgThunk(HWND hWnd,
+                                           UINT msg,
+                                           WPARAM wParam,
+                                           LPARAM lParam);
+    LRESULT HandleMsg(HWND hWnd, UINT msg, WPARAM wParam,
+                      LPARAM lParam);
 
 private:
     unsigned int width;
@@ -80,8 +91,3 @@ private:
     HWND hWnd;
     std::unique_ptr<Graphics> pGfx;
 };
-
-// error exception helper macro
-#define LWND_EXCEPT(hr) Window::HrException(__LINE__, __FILE__, (hr))
-#define LWND_LAST_EXCEPT() Window::HrException(__LINE__, __FILE__, GetLastError())
-#define LWND_NOGFX_EXCEPT() Window::NoGfxException(__LINE__, __FILE__)

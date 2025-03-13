@@ -3,12 +3,18 @@
 #include "DxgiInfoManager.h"
 #include "LampreyException.h"
 #include "LampreyWin.h"
+#include <DirectXMath.h>
 #include <d3d11.h>
+#include <d3dcompiler.h>
+#include <memory>
+#include <random>
 #include <vector>
 #include <wrl.h>
 
 class Graphics
 {
+    friend class Bindable;
+
 public:
     class Exception : public LampreyException
     {
@@ -17,7 +23,9 @@ public:
     class HrException : public Exception
     {
     public:
-        HrException(int line, const char* file, HRESULT hr, std::vector<std::string> infoMsgs = {}) noexcept;
+        HrException(int line, const char* file, HRESULT hr,
+                    std::vector<std::string> infoMsgs =
+                        {}) noexcept;
         const char* what() const noexcept override;
         const char* GetType() const noexcept override;
         HRESULT GetErrorCode() const noexcept;
@@ -32,7 +40,9 @@ public:
     class InfoException : public Exception
     {
     public:
-        InfoException(int line, const char* file, std::vector<std::string> infoMsgs) noexcept;
+        InfoException(
+            int line, const char* file,
+            std::vector<std::string> infoMsgs) noexcept;
         const char* what() const noexcept override;
         const char* GetType() const noexcept override;
         std::string GetErrorInfo() const noexcept;
@@ -57,11 +67,14 @@ public:
     Graphics& operator=(const Graphics&) = delete;
     ~Graphics() = default;
     void EndFrame();
-    void ClearBuffer(float red, float green, float blue) noexcept;
-    void DrawTestTriangle();
-    // void Draw
+    void ClearBuffer(float red, float green,
+                     float blue) noexcept;
+    void DrawIndexed(UINT count);
+    void SetProjection(DirectX::FXMMATRIX proj) noexcept;
+    DirectX::XMMATRIX GetProjection() const noexcept;
 
 private:
+    DirectX::XMMATRIX projection;
 #ifndef NDEBUG
     DxgiInfoManager infoManager;
 #endif
@@ -69,4 +82,5 @@ private:
     Microsoft::WRL::ComPtr<IDXGISwapChain> pSwap;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext> pContext;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView> pTarget;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilView> pDSV;
 };
