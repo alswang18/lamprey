@@ -57,6 +57,9 @@ target("lamprey")
     add_headerfiles("src/Drawable/*.h")
     add_includedirs("src/Drawable")
 
+    add_headerfiles("src/Geometry/*.h")
+    add_includedirs("src/Geometry")
+
 
     add_packages("fmt")
     -- MSVC specific flags
@@ -96,61 +99,46 @@ target("lamprey")
         add_cxxflags("/Zc:preprocessor") -- Conforming preprocessor
    
     end
-    -- Add only VertexShader.hlsl and apply the rule
-    add_files("shaders/VertexShader.hlsl", {rule = "vertex_shader"})
-    add_files("shaders/PixelShader.hlsl", {rule = "pixel_shader"})
-    
+
+    add_files("shaders/*.hlsl", {rule = "compile_shaders"})
     -- Copy the compiled shader to the output directory
     after_build(function (target)
         local outputdir = target:targetdir()
         os.mkdir(outputdir)
-        os.cp(path.join(target:objectdir(), "VertexShader.cso"), outputdir)
-        os.cp(path.join(target:objectdir(), "PixelShader.cso"), outputdir)
+        for _, file in ipairs(os.files(path.join(target:objectdir(), "shaders") .. "/*")) do
+            os.cp(file, outputdir)
+        end
     end)
 
-
-rule("vertex_shader")
+rule("compile_shaders")
     set_extensions(".hlsl")
     on_buildcmd_file(function (target, batchcmds, sourcefile, opt)
         -- Only process VertexShader.hlsl
-        if path.basename(sourcefile) ~= "VertexShader" then
+        if not sourcefile:endswith(".hlsl") then
+            print(sourcefile)
             return
         end
+        
         
         -- Get output file (same name but .cso extension)
         local outputdir = target:objectdir()
-        local outputfile = path.join(outputdir, "VertexShader.cso")
+        local outputfile = sourcefile:gsub(".hlsl", ".cso")
+        local outputfile = path.join(outputdir, outputfile)
         
         -- Ensure output directory exists
-        batchcmds:mkdir(path.directory(outputfile))
+        batchcmds:mkdir(path.join(outputdir, "shaders"))
         
-        batchcmds:execv("fxc", {"/T", "vs_5_0", "/E", "main", "/Fo", outputfile, sourcefile})
-        
-        -- Add the output file to the target
-        batchcmds:add_depfiles(sourcefile)
-        batchcmds:set_depmtime(os.mtime(outputfile))
-        batchcmds:set_depcache(target:dependfile(outputfile))
-        
-        -- Return the output file
-        return outputfile
-    end)
-
-rule("pixel_shader")
-    set_extensions(".hlsl")
-    on_buildcmd_file(function (target, batchcmds, sourcefile, opt)
-
-        if path.basename(sourcefile) ~= "PixelShader" then
-            print("failed: " .. sourcefile .. " is not PixelShader.hlsl")
+        if sourcefile:endswith("VS.hlsl") then
+            batchcmds:execv("fxc", {"/T", "vs_5_0", "/E", "main", "/Fo", outputfile, sourcefile})
+        elseif sourcefile:endswith("PS.hlsl") then
+            batchcmds:execv("fxc", {"/T", "ps_5_0", "/E", "main", "/Fo", outputfile, sourcefile})
+        else 
+            print("failed: " .. sourcefile .. " is not a valid shader name")
             return
         end
 
-        local outputdir = target:objectdir()
-        local outputfile = path.join(outputdir, "PixelShader.cso")
 
-        batchcmds:show_progress(opt.progress, "${color.build.object}compiling shader %s", sourcefile)
-        batchcmds:execv("fxc", {"/T", "ps_5_0", "/E", "main", "/Fo", outputfile, sourcefile})
-
-    -- Add the output file to the target
+        -- Add the output file to the target
         batchcmds:add_depfiles(sourcefile)
         batchcmds:set_depmtime(os.mtime(outputfile))
         batchcmds:set_depcache(target:dependfile(outputfile))
