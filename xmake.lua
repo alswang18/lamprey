@@ -71,6 +71,7 @@ target("lamprey")
         set_warnings("all")     -- This removes default warning flags
         add_cxxflags("/W3", {force = true})
         add_syslinks("user32", "gdi32")  -- Add Windows system libraries
+        add_links("gdiplus")
 
         
         -- Debug configuration
@@ -101,11 +102,17 @@ target("lamprey")
     end
 
     add_files("shaders/*.hlsl", {rule = "compile_shaders"})
+    add_files("images/*.png" , {rule = "copy_images"})
     -- Copy the compiled shader to the output directory
     after_build(function (target)
         local outputdir = target:targetdir()
         os.mkdir(outputdir)
         for _, file in ipairs(os.files(path.join(target:objectdir(), "shaders") .. "/*")) do
+            os.cp(file, outputdir)
+        end
+
+        for _, file in ipairs(os.files(path.join(target:objectdir(), "images") .. "/*")) do
+            
             os.cp(file, outputdir)
         end
     end)
@@ -145,4 +152,23 @@ rule("compile_shaders")
         
         -- Return the output file
         return outputfile
+    end)
+
+rule("copy_images")
+    set_extensions(".png")
+    on_buildcmd_file(function (target, batchcmds, sourcefile, opt)
+    
+    batchcmds:mkdir(path.join(target:objectdir(), "images"))
+    local outputdir = target:objectdir()
+    local outputfile = path.join(outputdir, sourcefile)
+    print(outputfile)
+
+    batchcmds:add_depfiles(sourcefile)
+    batchcmds:set_depmtime(os.mtime(outputfile))
+    batchcmds:set_depcache(target:dependfile(outputfile))
+    batchcmds:cp(sourcefile, outputfile)
+
+
+    return outputfile
+
     end)
