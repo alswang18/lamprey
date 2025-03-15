@@ -1,6 +1,7 @@
 #include "Graphics.h"
 #include "Macros/GraphicsThrowMacros.h"
 #include "imgui/imgui_impl_dx11.h"
+#include "imgui/imgui_impl_win32.h"
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
 #include <dxgiformat.h>
@@ -112,7 +113,12 @@ Graphics::~Graphics()
 
 void Graphics::EndFrame()
 {
-    HRESULT hr;
+    if (imguiEnabled)
+    {
+        ImGui::Render();
+        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    }
+    HRESULT hr = S_OK;
 #ifndef NDEBUG
     infoManager.Set();
 #endif
@@ -130,9 +136,16 @@ void Graphics::EndFrame()
     }
 }
 
-void Graphics::ClearBuffer(float red, float green,
-                           float blue) noexcept
+void Graphics::BeginFrame(float red, float green,
+                          float blue) noexcept
 {
+    // imgui begin frame
+    if (imguiEnabled)
+    {
+        ImGui_ImplDX11_NewFrame();
+        ImGui_ImplWin32_NewFrame();
+        ImGui::NewFrame();
+    }
     const float color[] = {red, green, blue, 1.0f};
     pContext->ClearRenderTargetView(pTarget.Get(), color);
     pContext->ClearDepthStencilView(
@@ -212,6 +225,31 @@ void Graphics::SetProjection(
     DirectX::FXMMATRIX proj) noexcept
 {
     projection = proj;
+}
+
+void Graphics::SetCamera(DirectX::FXMMATRIX cam) noexcept
+{
+    camera = cam;
+}
+
+DirectX::XMMATRIX Graphics::GetCamera() const noexcept
+{
+    return camera;
+}
+
+void Graphics::EnableImgui() noexcept
+{
+    imguiEnabled = true;
+}
+
+void Graphics::DisableImgui() noexcept
+{
+    imguiEnabled = false;
+}
+
+bool Graphics::IsImguiEnabled() const noexcept
+{
+    return imguiEnabled;
 }
 
 DirectX::XMMATRIX Graphics::GetProjection() const noexcept

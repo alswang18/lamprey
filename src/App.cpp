@@ -93,25 +93,32 @@ int App::Go()
 
 void App::DoFrame()
 {
-    const auto dt = timer.Mark();
-    wnd.Gfx().ClearBuffer(0.07f, 0.0f, 0.12f);
+    const auto dt = timer.Mark() * speed_factor;
+    wnd.Gfx().BeginFrame(0.07f, 0.0f, 0.12f);
+    wnd.Gfx().SetCamera(cam.GetMatrix());
     for (auto& d : drawables)
     {
         d->Update(wnd.keyboard.KeyIsPressed(VK_SPACE) ? 0.0f
                                                       : dt);
         d->Draw(wnd.Gfx());
     }
-    ImGui_ImplDX11_NewFrame();
-    ImGui_ImplWin32_NewFrame();
-    ImGui::NewFrame();
-    static bool show_demo_window = true;
-    if (show_demo_window)
+    // imgui window to control simulation speed
+    if (ImGui::Begin("Simulation Speed"))
     {
-        ImGui::ShowDemoWindow(&show_demo_window);
+        ImGui::SliderFloat("Speed Factor", &speed_factor,
+                           0.0f, 10.0f);
+        ImGui::Text("%.3f ms/frame (%.1f FPS)",
+                    1000.0f / ImGui::GetIO().Framerate,
+                    ImGui::GetIO().Framerate);
+        ImGui::Text(
+            "Status: %s",
+            wnd.keyboard.KeyIsPressed(VK_SPACE)
+                ? "PAUSED"
+                : "RUNNING (hold spacebar to pause)");
     }
+    ImGui::End();
 
-    ImGui::Render();
-    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    cam.SpawnControlWindow();
     wnd.Gfx().EndFrame();
 }
 

@@ -183,22 +183,21 @@ bool isPointValid(const POINTS& pt, int width, int height)
 LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
                           WPARAM wParam, LPARAM lParam)
 {
-
     if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam,
                                        lParam))
     {
         return true;
     }
+    const auto& imio = ImGui::GetIO();
 
     switch (msg)
     {
     // we don't want the DefProc to handle this message
-    // because we want our destructor to destroy the
-    // window, so return 0 instead of break
+    // because we want our destructor to destroy the window,
+    // so return 0 instead of break
     case WM_CLOSE:
         PostQuitMessage(0);
         return 0;
-
     // clear keystate when window loses focus to prevent
     // input getting "stuck"
     case WM_KILLFOCUS:
@@ -207,12 +206,18 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
 
     /*********** KEYBOARD MESSAGES ***********/
     case WM_KEYDOWN:
-    // syskey commands need to be handled to track ALT
-    // key (VK_MENU) and F10
+    // syskey commands need to be handled to track ALT key
+    // (VK_MENU) and F10
     case WM_SYSKEYDOWN:
+        // stifle this keyboard message if imgui wants to
+        // capture
+        if (imio.WantCaptureKeyboard)
+        {
+            break;
+        }
         if (!(lParam & 0x40000000) ||
-            keyboard.AutorepeatIsEnabled()) // filter
-                                            // autorepeat
+            keyboard
+                .AutorepeatIsEnabled()) // filter autorepeat
         {
             keyboard.OnKeyPressed(
                 static_cast<unsigned char>(wParam));
@@ -220,23 +225,40 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
         break;
     case WM_KEYUP:
     case WM_SYSKEYUP:
+        // stifle this keyboard message if imgui wants to
+        // capture
+        if (imio.WantCaptureKeyboard)
+        {
+            break;
+        }
         keyboard.OnKeyReleased(
             static_cast<unsigned char>(wParam));
         break;
     case WM_CHAR:
+        // stifle this keyboard message if imgui wants to
+        // capture
+        if (imio.WantCaptureKeyboard)
+        {
+            break;
+        }
         keyboard.OnChar(static_cast<unsigned char>(wParam));
         break;
-        /*********** END KEYBOARD MESSAGES ***********/
+    /*********** END KEYBOARD MESSAGES ***********/
 
-        /************* MOUSE MESSAGES ****************/
+    /************* MOUSE MESSAGES ****************/
     case WM_MOUSEMOVE:
     {
+        // stifle this mouse message if imgui wants to
+        // capture
+        if (imio.WantCaptureMouse)
+        {
+            break;
+        }
         const POINTS pt = MAKEPOINTS(lParam);
-        int x = static_cast<int>(pt.x);
-        int y = static_cast<int>(pt.y);
         // in client region -> log move, and log enter +
         // capture mouse (if not previously in window)
-        if (isPointValid(pt, width, height))
+        if (pt.x >= 0 && pt.x < width && pt.y >= 0 &&
+            pt.y < height)
         {
             mouse.OnMouseMove(pt.x, pt.y);
             if (!mouse.IsInWindow())
@@ -245,16 +267,16 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
                 mouse.OnMouseEnter();
             }
         }
-        // not in client -> log move / maintain capture
-        // if button down
+        // not in client -> log move / maintain capture if
+        // button down
         else
         {
             if (wParam & (MK_LBUTTON | MK_RBUTTON))
             {
                 mouse.OnMouseMove(pt.x, pt.y);
             }
-            // button up -> release capture / log event
-            // for leaving
+            // button up -> release capture / log event for
+            // leaving
             else
             {
                 ReleaseCapture();
@@ -265,25 +287,42 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
     }
     case WM_LBUTTONDOWN:
     {
+        SetForegroundWindow(hWnd);
+        // stifle this mouse message if imgui wants to
+        // capture
+        if (imio.WantCaptureMouse)
+        {
+            break;
+        }
         const POINTS pt = MAKEPOINTS(lParam);
         mouse.OnLeftPressed(pt.x, pt.y);
-        // bring window to foreground on lclick client
-        // region
-        SetForegroundWindow(hWnd);
         break;
     }
     case WM_RBUTTONDOWN:
     {
+        // stifle this mouse message if imgui wants to
+        // capture
+        if (imio.WantCaptureMouse)
+        {
+            break;
+        }
         const POINTS pt = MAKEPOINTS(lParam);
         mouse.OnRightPressed(pt.x, pt.y);
         break;
     }
     case WM_LBUTTONUP:
     {
+        // stifle this mouse message if imgui wants to
+        // capture
+        if (imio.WantCaptureMouse)
+        {
+            break;
+        }
         const POINTS pt = MAKEPOINTS(lParam);
         mouse.OnLeftReleased(pt.x, pt.y);
         // release mouse if outside of window
-        if (isPointValid(pt, width, height))
+        if (pt.x < 0 || pt.x >= width || pt.y < 0 ||
+            pt.y >= height)
         {
             ReleaseCapture();
             mouse.OnMouseLeave();
@@ -292,10 +331,17 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
     }
     case WM_RBUTTONUP:
     {
+        // stifle this mouse message if imgui wants to
+        // capture
+        if (imio.WantCaptureMouse)
+        {
+            break;
+        }
         const POINTS pt = MAKEPOINTS(lParam);
         mouse.OnRightReleased(pt.x, pt.y);
         // release mouse if outside of window
-        if (isPointValid(pt, width, height))
+        if (pt.x < 0 || pt.x >= width || pt.y < 0 ||
+            pt.y >= height)
         {
             ReleaseCapture();
             mouse.OnMouseLeave();
@@ -304,13 +350,18 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
     }
     case WM_MOUSEWHEEL:
     {
+        // stifle this mouse message if imgui wants to
+        // capture
+        if (imio.WantCaptureMouse)
+        {
+            break;
+        }
         const POINTS pt = MAKEPOINTS(lParam);
         const int delta = GET_WHEEL_DELTA_WPARAM(wParam);
         mouse.OnWheelDelta(pt.x, pt.y, delta);
         break;
     }
-        /************** END MOUSE MESSAGES
-         * **************/
+        /************** END MOUSE MESSAGES **************/
     }
 
     return DefWindowProc(hWnd, msg, wParam, lParam);

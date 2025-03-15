@@ -1,5 +1,6 @@
 #include "SkinnedBox.h"
 #include "Bindable/BindableBase.h"
+#include "Bindable/Sampler.h"
 #include "Geometry/Cube.h"
 #include "Macros/GraphicsThrowMacros.h"
 #include "Surface.h"
@@ -36,6 +37,8 @@ SkinnedBox::SkinnedBox(
 
         AddStaticBind(std::make_unique<Texture>(
             gfx, Surface::FromFile("cube.png")));
+
+        AddStaticBind(std::make_unique<Sampler>(gfx));
 
         auto pvs = std::make_unique<VertexShader>(
             gfx, L"TextureVS.cso");
@@ -86,6 +89,5 @@ DirectX::XMMATRIX SkinnedBox::GetTransformXM()
                                             roll) *
            dx::XMMatrixTranslation(r, 0.0f, 0.0f) *
            dx::XMMatrixRotationRollPitchYaw(theta, phi,
-                                            chi) *
-           dx::XMMatrixTranslation(0.0f, 0.0f, 20.0f);
+                                            chi);
 }
