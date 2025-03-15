@@ -1,5 +1,6 @@
 #include "Graphics.h"
 #include "Macros/GraphicsThrowMacros.h"
+#include "imgui/imgui_impl_dx11.h"
 #include <DirectXMath.h>
 #include <d3dcompiler.h>
 #include <dxgiformat.h>
@@ -100,6 +101,13 @@ Graphics::Graphics(HWND hWnd)
     vp.TopLeftX = 0.0f;
     vp.TopLeftY = 0.0f;
     pContext->RSSetViewports(1u, &vp);
+
+    ImGui_ImplDX11_Init(pDevice.Get(), pContext.Get());
+}
+
+Graphics::~Graphics()
+{
+    ImGui_ImplDX11_Shutdown();
 }
 
 void Graphics::EndFrame()

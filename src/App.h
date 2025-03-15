@@ -1,4 +1,5 @@
 #pragma once
+#include "ImguiManager.h"
 #include "Timer.h"
 #include "Window.h"
 
@@ -14,6 +15,7 @@ private:
     void DoFrame();
 
 private:
+    ImguiManager imgui;
     Window wnd;
     Timer timer;
     std::vector<std::unique_ptr<class Drawable>> drawables;

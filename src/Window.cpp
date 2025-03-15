@@ -1,5 +1,6 @@
 #include "Window.h"
 #include "Macros/WindowsThrowMacros.h"
+#include "imgui/imgui_impl_win32.h"
 #include "resource.h"
 #include <sstream>
 
@@ -78,10 +79,13 @@ Window::Window(int width, int height, const char* name)
 
     // show window
     ShowWindow(hWnd, SW_SHOWDEFAULT);
+    ImGui_ImplWin32_Init(hWnd);
 }
 
 Window::~Window()
 {
+    ImGui_ImplWin32_Shutdown();
+    pGfx.reset();
     DestroyWindow(hWnd);
 }
 
@@ -179,11 +183,18 @@ bool isPointValid(const POINTS& pt, int width, int height)
 LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
                           WPARAM wParam, LPARAM lParam)
 {
+
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam,
+                                       lParam))
+    {
+        return true;
+    }
+
     switch (msg)
     {
     // we don't want the DefProc to handle this message
-    // because we want our destructor to destroy the window,
-    // so return 0 instead of break
+    // because we want our destructor to destroy the
+    // window, so return 0 instead of break
     case WM_CLOSE:
         PostQuitMessage(0);
         return 0;
@@ -196,12 +207,12 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
 
     /*********** KEYBOARD MESSAGES ***********/
     case WM_KEYDOWN:
-    // syskey commands need to be handled to track ALT key
-    // (VK_MENU) and F10
+    // syskey commands need to be handled to track ALT
+    // key (VK_MENU) and F10
     case WM_SYSKEYDOWN:
         if (!(lParam & 0x40000000) ||
-            keyboard
-                .AutorepeatIsEnabled()) // filter autorepeat
+            keyboard.AutorepeatIsEnabled()) // filter
+                                            // autorepeat
         {
             keyboard.OnKeyPressed(
                 static_cast<unsigned char>(wParam));
@@ -234,16 +245,16 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
                 mouse.OnMouseEnter();
             }
         }
-        // not in client -> log move / maintain capture if
-        // button down
+        // not in client -> log move / maintain capture
+        // if button down
         else
         {
             if (wParam & (MK_LBUTTON | MK_RBUTTON))
             {
                 mouse.OnMouseMove(pt.x, pt.y);
             }
-            // button up -> release capture / log event for
-            // leaving
+            // button up -> release capture / log event
+            // for leaving
             else
             {
                 ReleaseCapture();
@@ -298,7 +309,8 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg,
         mouse.OnWheelDelta(pt.x, pt.y, delta);
         break;
     }
-        /************** END MOUSE MESSAGES **************/
+        /************** END MOUSE MESSAGES
+         * **************/
     }
 
     return DefWindowProc(hWnd, msg, wParam, lParam);

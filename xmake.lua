@@ -61,6 +61,12 @@ target("lamprey")
     add_includedirs("src/Geometry")
 
 
+    add_files("src/imgui/*.cpp")
+    add_headerfiles("src/imgui/*.h")
+    add_includedirs("src/imgui")
+
+    add_defines("IMGUI_IMPL_WIN32_DISABLE_GAMEPAD")
+
     add_packages("fmt")
     -- MSVC specific flags
     if is_plat("windows") then
