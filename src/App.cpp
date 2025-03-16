@@ -6,8 +6,12 @@
 #include <fmt/core.h>
 #include <memory>
 
+#include "Drawable/AssTest.h"
 #include "GDIPlusManager.h"
 #include "imgui.h"
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 
 GDIPlusManager gdipm;
 
@@ -30,6 +34,10 @@ public:
             return std::make_unique<Cylinder>(
                 gfx, rng, adist, ddist, odist, rdist, bdist,
                 tdist);
+        case 2:
+            return std::make_unique<AssTest>(
+                gfx, rng, adist, ddist, odist, rdist, mat,
+                1.5f);
         default:
             assert(false &&
                    "impossible drawable option in factory");
@@ -50,13 +58,18 @@ private:
                                                 20.0f};
     std::uniform_real_distribution<float> cdist{0.0f, 1.0f};
     std::uniform_real_distribution<float> bdist{0.4f, 3.0f};
-    std::uniform_int_distribution<int> sdist{0, 1};
+    std::uniform_int_distribution<int> sdist{0, 2};
     std::uniform_int_distribution<int> tdist{3, 30};
 };
 
 App::App()
     : wnd(800, 600, "Lamprey Client"), light(wnd.Gfx())
 {
+    Assimp::Importer importer;
+    auto model = importer.ReadFile(
+        "suzanne.obj.model",
+        aiProcess_Triangulate |
+            aiProcess_JoinIdenticalVertices);
 
     drawables.reserve(nDrawables);
     std::generate_n(std::back_inserter(drawables),

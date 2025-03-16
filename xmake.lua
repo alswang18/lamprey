@@ -37,6 +37,8 @@ after_build(function (target)
 end)
 
 add_requires("fmt", {configs = {runtimes = is_mode("debug") and "MTd" or "MT"}})
+add_requires("assimp", {configs = {runtimes = is_mode("debug") and "MTd" or "MT", 
+shared = false}})
 
 -- Define target
 target("lamprey")
@@ -66,6 +68,9 @@ target("lamprey")
     add_includedirs("src/imgui")
 
     add_defines("IMGUI_IMPL_WIN32_DISABLE_GAMEPAD")
+
+    add_packages("assimp")
+
 
     add_packages("fmt")
     -- MSVC specific flags
@@ -109,6 +114,9 @@ target("lamprey")
 
     add_files("shaders/*.hlsl", {rule = "compile_shaders"})
     add_files("images/*.png" , {rule = "copy_images"})
+
+    -- we don't directly use obj as a filetype as xmake gets confused when the file ends in .obj
+    add_files("models/*.obj.model" , {rule = "copy_obj_models"})
     -- Copy the compiled shader to the output directory
     after_build(function (target)
         local outputdir = target:targetdir()
@@ -118,7 +126,10 @@ target("lamprey")
         end
 
         for _, file in ipairs(os.files(path.join(target:objectdir(), "images") .. "/*")) do
-            
+            os.cp(file, outputdir)
+        end
+
+        for _, file in ipairs(os.files(path.join(target:objectdir(), "models") .. "/*")) do
             os.cp(file, outputdir)
         end
     end)
@@ -167,7 +178,6 @@ rule("copy_images")
     batchcmds:mkdir(path.join(target:objectdir(), "images"))
     local outputdir = target:objectdir()
     local outputfile = path.join(outputdir, sourcefile)
-    print(outputfile)
 
     batchcmds:add_depfiles(sourcefile)
     batchcmds:set_depmtime(os.mtime(outputfile))
@@ -176,5 +186,21 @@ rule("copy_images")
 
 
     return outputfile
+
+    end)
+
+rule("copy_obj_models")
+    set_extensions(".obj.model")
+    on_buildcmd_file(function (target, batchcmds, sourcefile, opt)
+    
+    batchcmds:mkdir(path.join(target:objectdir(), "models"))
+    local outputdir = target:objectdir()
+    local outputfile = path.join(outputdir, sourcefile)
+
+    print(outputfile)
+
+    batchcmds:cp(sourcefile, outputfile)
+
+    return
 
     end)
