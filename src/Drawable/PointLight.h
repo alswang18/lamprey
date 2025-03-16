@@ -10,7 +10,8 @@ public:
     void SpawnControlWindow() noexcept;
     void Reset() noexcept;
     void Draw(Graphics& gfx);
-    void Bind(Graphics& gfx) noexcept;
+    void Bind(Graphics& gfx,
+              DirectX::FXMMATRIX view) noexcept;
 
 private:
     struct PointLightCBuf

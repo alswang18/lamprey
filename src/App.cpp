@@ -1,10 +1,6 @@
 #include "App.h"
 #include "Drawable/Box.h"
-#include "Drawable/Melon.h"
-#include "Drawable/Pyramid.h"
-#include "Drawable/Sheet.h"
-#include "Drawable/SkinnedBox.h"
-#include "Drawable/Surface.h"
+#include "Drawable/Cylinder.h"
 #include "LampreyMath.h"
 #include <algorithm>
 #include <fmt/core.h>
@@ -24,9 +20,21 @@ public:
         const DirectX::XMFLOAT3 mat = {
             cdist(rng), cdist(rng), cdist(rng)};
 
-        return std::make_unique<Box>(gfx, rng, adist, ddist,
-                                     odist, rdist, bdist,
-                                     mat);
+        switch (sdist(rng))
+        {
+        case 0:
+            return std::make_unique<Box>(gfx, rng, adist,
+                                         ddist, odist,
+                                         rdist, bdist, mat);
+        case 1:
+            return std::make_unique<Cylinder>(
+                gfx, rng, adist, ddist, odist, rdist, bdist,
+                tdist);
+        default:
+            assert(false &&
+                   "impossible drawable option in factory");
+            return {};
+        }
     }
 
 private:
@@ -42,6 +50,8 @@ private:
                                                 20.0f};
     std::uniform_real_distribution<float> cdist{0.0f, 1.0f};
     std::uniform_real_distribution<float> bdist{0.4f, 3.0f};
+    std::uniform_int_distribution<int> sdist{0, 1};
+    std::uniform_int_distribution<int> tdist{3, 30};
 };
 
 App::App()
@@ -77,7 +87,7 @@ void App::DoFrame()
     const auto dt = timer.Mark() * speed_factor;
     wnd.Gfx().BeginFrame(0.07f, 0.0f, 0.12f);
     wnd.Gfx().SetCamera(cam.GetMatrix());
-    light.Bind(wnd.Gfx());
+    light.Bind(wnd.Gfx(), cam.GetMatrix());
     for (auto& d : drawables)
     {
         d->Update(wnd.keyboard.KeyIsPressed(VK_SPACE) ? 0.0f
@@ -89,7 +99,7 @@ void App::DoFrame()
     if (ImGui::Begin("Simulation Speed"))
     {
         ImGui::SliderFloat("Speed Factor", &speed_factor,
-                           0.0f, 10.0f);
+                           0.0f, 6.0f, "%.4f");
         ImGui::Text("%.3f ms/frame (%.1f FPS)",
                     1000.0f / ImGui::GetIO().Framerate,
                     ImGui::GetIO().Framerate);
