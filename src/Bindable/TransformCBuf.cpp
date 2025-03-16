@@ -5,13 +5,14 @@ std::unique_ptr<
     TransformCbuf::pVcbuf;
 
 TransformCbuf::TransformCbuf(Graphics& gfx,
-                             const Drawable& parent)
+                             const Drawable& parent,
+                             UINT slot)
     : parent(parent)
 {
     if (!pVcbuf)
     {
         pVcbuf = std::make_unique<
-            VertexConstantBuffer<Transforms>>(gfx);
+            VertexConstantBuffer<Transforms>>(gfx, slot);
     }
 }
 

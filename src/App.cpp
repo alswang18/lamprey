@@ -6,13 +6,12 @@
 #include "Drawable/SkinnedBox.h"
 #include "Drawable/Surface.h"
 #include "LampreyMath.h"
+#include <algorithm>
 #include <fmt/core.h>
 #include <memory>
 
 #include "GDIPlusManager.h"
 #include "imgui.h"
-#include "imgui/imgui_impl_dx11.h"
-#include "imgui/imgui_impl_win32.h"
 
 GDIPlusManager gdipm;
 
@@ -22,9 +21,12 @@ public:
     Factory(Graphics& gfx) : gfx(gfx) {}
     std::unique_ptr<Drawable> operator()()
     {
+        const DirectX::XMFLOAT3 mat = {
+            cdist(rng), cdist(rng), cdist(rng)};
 
         return std::make_unique<Box>(gfx, rng, adist, ddist,
-                                     odist, rdist, bdist);
+                                     odist, rdist, bdist,
+                                     mat);
     }
 
 private:
@@ -38,6 +40,7 @@ private:
                                                 PI * 0.08f};
     std::uniform_real_distribution<float> rdist{6.0f,
                                                 20.0f};
+    std::uniform_real_distribution<float> cdist{0.0f, 1.0f};
     std::uniform_real_distribution<float> bdist{0.4f, 3.0f};
 };
 
@@ -99,6 +102,7 @@ void App::DoFrame()
     ImGui::End();
 
     cam.SpawnControlWindow();
+    light.SpawnControlWindow();
     wnd.Gfx().EndFrame();
 }
 
