@@ -1,6 +1,8 @@
 #pragma once
 #include "Graphics.h"
 
+namespace Bind
+{
 class Bindable
 {
 public:
@@ -13,3 +15,4 @@ protected:
     static ID3D11Device* GetDevice(Graphics& gfx) noexcept;
     static DxgiInfoManager& GetInfoManager(Graphics& gfx);
 };
+} // namespace Bind

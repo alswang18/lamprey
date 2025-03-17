@@ -1,6 +1,6 @@
 #pragma once
+#include "Bindable/IndexBuffer.h"
 #include "Drawable.h"
-#include "IndexBuffer.h"
 
 template<class T>
 class DrawableBase : public Drawable
@@ -11,15 +11,15 @@ protected:
         return !staticBinds.empty();
     }
     static void AddStaticBind(
-        std::unique_ptr<Bindable> bind)
+        std::unique_ptr<Bind::Bindable> bind)
     {
         assert("*Must* use AddStaticIndexBuffer to bind "
                "index buffer" &&
-               typeid(*bind) != typeid(IndexBuffer));
+               typeid(*bind) != typeid(Bind::IndexBuffer));
         staticBinds.push_back(std::move(bind));
     }
     void AddStaticIndexBuffer(
-        std::unique_ptr<IndexBuffer> ibuf)
+        std::unique_ptr<Bind::IndexBuffer> ibuf)
     {
         assert("Attempting to add index buffer a second "
                "time" &&
@@ -35,7 +35,8 @@ protected:
         for (const auto& b : staticBinds)
         {
             if (const auto p =
-                    dynamic_cast<IndexBuffer*>(b.get()))
+                    dynamic_cast<Bind::IndexBuffer*>(
+                        b.get()))
             {
                 pIndexBuffer = p;
                 return;
@@ -47,17 +48,17 @@ protected:
     }
 
 private:
-    const std::vector<std::unique_ptr<Bindable>>&
+    const std::vector<std::unique_ptr<Bind::Bindable>>&
     GetStaticBinds() const noexcept override
     {
         return staticBinds;
     }
 
 private:
-    static std::vector<std::unique_ptr<Bindable>>
+    static std::vector<std::unique_ptr<Bind::Bindable>>
         staticBinds;
 };
 
 template<class T>
-std::vector<std::unique_ptr<Bindable>>
+std::vector<std::unique_ptr<Bind::Bindable>>
     DrawableBase<T>::staticBinds;

@@ -1,8 +1,10 @@
 #include "Texture.h"
-#include "Drawable/Surface.h"
-#include "Macros/GraphicsThrowMacros.h"
+#include "GraphicsThrowMacros.h"
+#include "Surface.h"
 
 
+namespace Bind
+{
 namespace wrl = Microsoft::WRL;
 
 Texture::Texture(Graphics& gfx, const Surface& s)
@@ -44,3 +46,4 @@ void Texture::Bind(Graphics& gfx) noexcept
     GetContext(gfx)->PSSetShaderResources(
         0u, 1u, pTextureView.GetAddressOf());
 }
+} // namespace Bind

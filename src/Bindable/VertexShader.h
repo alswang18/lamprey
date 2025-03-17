@@ -1,6 +1,8 @@
 #pragma once
 #include "Bindable.h"
 
+namespace Bind
+{
 class VertexShader : public Bindable
 {
 public:
@@ -13,3 +15,4 @@ protected:
     Microsoft::WRL::ComPtr<ID3D11VertexShader>
         pVertexShader;
 };
+} // namespace Bind

@@ -28,5 +28,5 @@ private:
 private:
     PointLightCBuf cbData;
     SolidSphere mesh;
-    PixelConstantBuffer<PointLightCBuf> cbuf;
+    Bind::PixelConstantBuffer<PointLightCBuf> cbuf;
 };

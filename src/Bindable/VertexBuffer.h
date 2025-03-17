@@ -1,7 +1,10 @@
 #pragma once
 #include "Bindable.h"
-#include "Macros/GraphicsThrowMacros.h"
+#include "GraphicsThrowMacros.h"
+#include "Vertex.h"
 
+namespace Bind
+{
 class VertexBuffer : public Bindable
 {
 public:
@@ -24,9 +27,12 @@ public:
         GFX_THROW_INFO(GetDevice(gfx)->CreateBuffer(
             &bd, &sd, &pVertexBuffer));
     }
+    VertexBuffer(Graphics& gfx,
+                 const Dvtx::VertexBuffer& vbuf);
     void Bind(Graphics& gfx) noexcept override;
 
 protected:
     UINT stride;
     Microsoft::WRL::ComPtr<ID3D11Buffer> pVertexBuffer;
 };
+} // namespace Bind

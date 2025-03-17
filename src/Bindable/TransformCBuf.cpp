@@ -1,9 +1,7 @@
 #include "TransformCbuf.h"
 
-std::unique_ptr<
-    VertexConstantBuffer<TransformCbuf::Transforms>>
-    TransformCbuf::pVcbuf;
-
+namespace Bind
+{
 TransformCbuf::TransformCbuf(Graphics& gfx,
                              const Drawable& parent,
                              UINT slot)
@@ -27,3 +25,8 @@ void TransformCbuf::Bind(Graphics& gfx) noexcept
     pVcbuf->Update(gfx, tf);
     pVcbuf->Bind(gfx);
 }
+
+std::unique_ptr<
+    VertexConstantBuffer<TransformCbuf::Transforms>>
+    TransformCbuf::pVcbuf;
+} // namespace Bind

@@ -1,6 +1,7 @@
 #pragma once
 #include "Bindable.h"
-
+namespace Bind
+{
 class IndexBuffer : public Bindable
 {
 public:
@@ -13,3 +14,4 @@ protected:
     UINT count;
     Microsoft::WRL::ComPtr<ID3D11Buffer> pIndexBuffer;
 };
+} // namespace Bind

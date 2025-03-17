@@ -1,6 +1,8 @@
 #include "Sampler.h"
 #include "GraphicsThrowMacros.h"
 
+namespace Bind
+{
 Sampler::Sampler(Graphics& gfx)
 {
     INFOMAN(gfx);
@@ -20,3 +22,4 @@ void Sampler::Bind(Graphics& gfx) noexcept
     GetContext(gfx)->PSSetSamplers(0, 1,
                                    pSampler.GetAddressOf());
 }
+} // namespace Bind

@@ -1,6 +1,9 @@
 #include "IndexBuffer.h"
 #include "Macros/GraphicsThrowMacros.h"
 
+namespace Bind
+{
+
 IndexBuffer::IndexBuffer(
     Graphics& gfx,
     const std::vector<unsigned short>& indices)
@@ -31,3 +34,4 @@ UINT IndexBuffer::GetCount() const noexcept
 {
     return count;
 }
+} // namespace Bind

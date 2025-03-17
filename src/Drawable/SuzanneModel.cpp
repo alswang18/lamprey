@@ -1,11 +1,14 @@
-#include "AssTest.h"
-#include "Bindable/BindableBase.h"
-#include "Macros/GraphicsThrowMacros.h"
+#include "SuzanneModel.h"
+#include "BindableCommon.h"
+#include "GraphicsThrowMacros.h"
+#include "Vertex.h"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-AssTest::AssTest(
+using namespace Bind;
+
+SuzanneModel::SuzanneModel(
     Graphics& gfx, std::mt19937& rng,
     std::uniform_real_distribution<float>& adist,
     std::uniform_real_distribution<float>& ddist,
@@ -18,30 +21,28 @@ AssTest::AssTest(
 
     if (!IsStaticInitialized())
     {
-        struct Vertex
-        {
-            dx::XMFLOAT3 pos;
-            dx::XMFLOAT3 n;
-        };
+        using Dvtx::VertexLayout;
+        Dvtx::VertexBuffer vbuf(
+            std::move(VertexLayout{}
+                          .Append(VertexLayout::Position3D)
+                          .Append(VertexLayout::Normal)));
 
         Assimp::Importer imp;
         const auto pModel = imp.ReadFile(
-            "suzanne.obj.model",
+            "models\\suzanne.obj",
             aiProcess_Triangulate |
                 aiProcess_JoinIdenticalVertices);
         const auto pMesh = pModel->mMeshes[0];
 
-        std::vector<Vertex> vertices;
-        vertices.reserve(pMesh->mNumVertices);
         for (unsigned int i = 0; i < pMesh->mNumVertices;
              i++)
         {
-            vertices.push_back(
-                {{pMesh->mVertices[i].x * scale,
-                  pMesh->mVertices[i].y * scale,
-                  pMesh->mVertices[i].z * scale},
-                 *reinterpret_cast<dx::XMFLOAT3*>(
-                     &pMesh->mNormals[i])});
+            vbuf.EmplaceBack(
+                dx::XMFLOAT3{pMesh->mVertices[i].x * scale,
+                             pMesh->mVertices[i].y * scale,
+                             pMesh->mVertices[i].z * scale},
+                *reinterpret_cast<dx::XMFLOAT3*>(
+                    &pMesh->mNormals[i]));
         }
 
         std::vector<unsigned short> indices;
@@ -56,7 +57,7 @@ AssTest::AssTest(
         }
 
         AddStaticBind(
-            std::make_unique<VertexBuffer>(gfx, vertices));
+            std::make_unique<VertexBuffer>(gfx, vbuf));
 
         AddStaticIndexBuffer(
             std::make_unique<IndexBuffer>(gfx, indices));
@@ -69,14 +70,8 @@ AssTest::AssTest(
         AddStaticBind(std::make_unique<PixelShader>(
             gfx, L"PhongPS.cso"));
 
-        const std::vector<D3D11_INPUT_ELEMENT_DESC> ied = {
-            {"Position", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
-             0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"Normal", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
-             12, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        };
-        AddStaticBind(
-            std::make_unique<InputLayout>(gfx, ied, pvsbc));
+        AddStaticBind(std::make_unique<InputLayout>(
+            gfx, vbuf.GetLayout().GetD3DLayout(), pvsbc));
 
         AddStaticBind(std::make_unique<Topology>(
             gfx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST));

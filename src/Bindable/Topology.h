@@ -1,6 +1,8 @@
 #pragma once
 #include "Bindable.h"
 
+namespace Bind
+{
 class Topology : public Bindable
 {
 public:
@@ -10,3 +12,4 @@ public:
 protected:
     D3D11_PRIMITIVE_TOPOLOGY type;
 };
+} // namespace Bind

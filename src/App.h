@@ -1,6 +1,7 @@
 #pragma once
 #include "Camera.h"
 #include "ImguiManager.h"
+#include "Mesh.h"
 #include "PointLight.h"
 #include "Timer.h"
 #include "Window.h"
@@ -15,6 +16,7 @@ public:
 
 private:
     void DoFrame();
+    void ShowModelWindow();
 
 private:
     ImguiManager imgui;
@@ -23,6 +25,14 @@ private:
     float speed_factor = 1.0f;
     Camera cam;
     PointLight light;
-    std::vector<std::unique_ptr<class Drawable>> drawables;
-    static constexpr size_t nDrawables = 180;
+    Model nano{wnd.Gfx(), "nanosuit.obj.model"};
+    struct
+    {
+        float roll = 0.0f;
+        float pitch = 0.0f;
+        float yaw = 0.0f;
+        float x = 0.0f;
+        float y = 0.0f;
+        float z = 0.0f;
+    } pos;
 };

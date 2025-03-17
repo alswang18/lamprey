@@ -1,5 +1,7 @@
 #include "Bindable.h"
 
+namespace Bind
+{
 ID3D11DeviceContext* Bindable::GetContext(
     Graphics& gfx) noexcept
 {
@@ -21,3 +23,4 @@ DxgiInfoManager& Bindable::GetInfoManager(Graphics& gfx)
         "Release config)");
 #endif
 }
+} // namespace Bind

@@ -1,6 +1,8 @@
 #pragma once
 #include "Bindable.h"
 
+namespace Bind
+{
 class InputLayout : public Bindable
 {
 public:
@@ -13,3 +15,4 @@ public:
 protected:
     Microsoft::WRL::ComPtr<ID3D11InputLayout> pInputLayout;
 };
+} // namespace Bind

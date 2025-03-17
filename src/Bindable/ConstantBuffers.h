@@ -1,7 +1,9 @@
 #pragma once
 #include "Bindable.h"
-#include "Macros/GraphicsThrowMacros.h"
+#include "GraphicsThrowMacros.h"
 
+namespace Bind
+{
 template<typename C>
 class ConstantBuffer : public Bindable
 {
@@ -88,3 +90,4 @@ public:
             slot, 1u, pConstantBuffer.GetAddressOf());
     }
 };
+} // namespace Bind

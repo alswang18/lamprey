@@ -1,6 +1,8 @@
 #include "PixelShader.h"
-#include "Macros/GraphicsThrowMacros.h"
+#include "GraphicsThrowMacros.h"
 
+namespace Bind
+{
 PixelShader::PixelShader(Graphics& gfx,
                          const std::wstring& path)
 {
@@ -18,3 +20,4 @@ void PixelShader::Bind(Graphics& gfx) noexcept
     GetContext(gfx)->PSSetShader(pPixelShader.Get(),
                                  nullptr, 0u);
 }
+} // namespace Bind

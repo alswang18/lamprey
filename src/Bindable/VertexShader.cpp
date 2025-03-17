@@ -1,6 +1,8 @@
 #include "VertexShader.h"
 #include "GraphicsThrowMacros.h"
 
+namespace Bind
+{
 VertexShader::VertexShader(Graphics& gfx,
                            const std::wstring& path)
 {
@@ -24,3 +26,4 @@ ID3DBlob* VertexShader::GetBytecode() const noexcept
 {
     return pBytecodeBlob.Get();
 }
+} // namespace Bind

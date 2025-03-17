@@ -11,9 +11,14 @@
 #include <vector>
 #include <wrl.h>
 
+namespace Bind
+{
+class Bindable;
+}
+
 class Graphics
 {
-    friend class Bindable;
+    friend class Bind::Bindable;
 
 public:
     class Exception : public LampreyException

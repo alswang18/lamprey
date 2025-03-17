@@ -1,6 +1,8 @@
 #include "InputLayout.h"
-#include "Macros/GraphicsThrowMacros.h"
+#include "GraphicsThrowMacros.h"
 
+namespace Bind
+{
 InputLayout::InputLayout(
     Graphics& gfx,
     const std::vector<D3D11_INPUT_ELEMENT_DESC>& layout,
@@ -19,3 +21,4 @@ void InputLayout::Bind(Graphics& gfx) noexcept
 {
     GetContext(gfx)->IASetInputLayout(pInputLayout.Get());
 }
+} // namespace Bind

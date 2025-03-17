@@ -1,10 +1,13 @@
 #pragma once
 #include "ConstantBuffers.h"
-#include "Drawable/Drawable.h"
+#include "Drawable.h"
 #include <DirectXMath.h>
 
+namespace Bind
+{
 class TransformCbuf : public Bindable
 {
+private:
     struct Transforms
     {
         DirectX::XMMATRIX modelViewProj;
@@ -21,3 +24,4 @@ private:
         pVcbuf;
     const Drawable& parent;
 };
+} // namespace Bind

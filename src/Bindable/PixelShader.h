@@ -1,6 +1,8 @@
 #pragma once
 #include "Bindable.h"
 
+namespace Bind
+{
 class PixelShader : public Bindable
 {
 public:
@@ -10,3 +12,4 @@ public:
 protected:
     Microsoft::WRL::ComPtr<ID3D11PixelShader> pPixelShader;
 };
+} // namespace Bind
