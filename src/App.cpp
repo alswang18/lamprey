@@ -4,7 +4,6 @@
 #include <fmt/core.h>
 #include <memory>
 
-#include "Drawable/SuzanneModel.h"
 #include "GDIPlusManager.h"
 #include "imgui.h"
 #include <assimp/Importer.hpp>
